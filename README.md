@@ -175,19 +175,48 @@ Crear `ddraw.ini` en la carpeta del juego y en `age2_x1/`:
 
 ```ini
 [age2_x1]
+; === Display ===
 nonexclusive=true
-adjmouse=true
-noactivateapp=true
 windowed=true
 fullscreen=true
 toggle_borderless=true
-renderer=opengl
 maintas=true
+aspect_ratio=16:9
+
+; === Performance ===
+renderer=opengl
+vsync=true
+maxfps=-1
+maxgameticks=0
+singlecpu=true
+
+; === Mouse ===
+adjmouse=true
+
+; === Upscaling shader (suavizado sin blur excesivo, bajo costo GPU) ===
+shader=Shaders\interpolation\catmull-rom-bilinear.glsl
+
+; === Compatibilidad Wine/Linux ===
+noactivateapp=true
+savesettings=2
 ```
 
 ```bash
 cp "$GAME/ddraw.ini" "$GAME/age2_x1/ddraw.ini"
 ```
+
+#### Shaders disponibles
+
+| Shader | Efecto | Uso recomendado |
+|--------|--------|-----------------|
+| `catmull-rom-bilinear.glsl` | Suavizado sin blur, bajo costo | **Recomendado** |
+| `fsr.glsl` | AMD FidelityFX Super Resolution | GPUs modernas, mayor nitidez |
+| `lanczos2-sharp.glsl` | Upscale nitido tipo Lanczos | Alternativa a FSR |
+| `xbrz-freescale-multipass.glsl` | Upscale tipo pixel-art | Estetica retro mejorada |
+| `bilinear.glsl` | Suavizado basico | Bajo rendimiento GPU |
+| `nearest-neighbor.glsl` | Sin suavizado (pixelado) | Estetica retro pura |
+| `crt-lottes-fast-no-warp-bilinear.glsl` | Efecto monitor CRT | Nostalgia |
+| `rca-sharpen.glsl` | Sharpening post-proceso | Combinar con otro shader |
 
 ### 7. Instalar UserPatch v1.5 (OBLIGATORIO)
 
@@ -282,6 +311,40 @@ Wine wow64.
 | CDPath=. (directorio actual) | El check de CD sigue activo en el exe |
 | Exe original (346KB) + cdrom config | Page fault -- necesita CD real |
 | Windows 2000 compatibility | No afecta el mecanismo de CD check |
+
+## Optimizaciones de rendimiento
+
+Estas mejoras fueron validadas contra configuraciones de la comunidad
+([cnc-ddraw GitHub](https://github.com/FunkyFr3sh/cnc-ddraw),
+[AoEZone](https://aoezone.net/), [PCGamingWiki](https://www.pcgamingwiki.com/wiki/Age_of_Empires_II:_The_Age_of_Kings)):
+
+| Optimización | Config | Efecto |
+|-------------|--------|--------|
+| Shader upscaling | `shader=Shaders\interpolation\catmull-rom-bilinear.glsl` | Suavizado de bordes sin blur excesivo |
+| VSync | `vsync=true` | Elimina tearing visual |
+| FPS sync | `maxfps=-1` | Sincroniza FPS con frecuencia del monitor |
+| Game ticks | `maxgameticks=0` | Velocidad de juego estable a 60hz |
+| Single CPU | `singlecpu=true` | Evita problemas de threading en Wine |
+| Aspect ratio | `aspect_ratio=16:9` | Fuerza ratio correcto en widescreen |
+| NormalMouse | Registry `CommandLine=NormalMouse` | Reduce input lag del mouse |
+| Save settings | `savesettings=2` | Guarda config por juego (no global) |
+
+### NormalMouse (reducir input lag)
+
+```bash
+WINEPREFIX="$PREFIX" wine reg add \
+  "HKLM\Software\Microsoft\Microsoft Games\Age of Empires II: The Conquerors Expansión\1.0" \
+  /v "CommandLine" /t REG_SZ /d "NormalMouse" /f
+```
+
+### Que NO aplica a AoE2 clasico
+
+| Tecnologia | Por que no aplica |
+|-----------|-------------------|
+| DXVK | AoE2 usa DirectDraw, no Direct3D. DXVK solo traduce D3D->Vulkan |
+| dgVoodoo2 | Wrapper D3D/Glide, no DirectDraw. No beneficia a AoE2 |
+| Proton | Para Steam/DE. La versión clasica corre directo en Wine |
+| FSR (sistema) | cnc-ddraw tiene su propio FSR shader integrado |
 
 ## Hotkeys
 
